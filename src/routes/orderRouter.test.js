@@ -3,8 +3,6 @@ const app = require('../service');
 const { DB, Role } = require('../database/database.js');
 
 let adminAuthToken;
-let adminId;
-let adminEmail;
 
 function randomName() {
     return Math.random().toString(36).substring(2, 12);
@@ -27,8 +25,6 @@ beforeAll(async () => {
 
   const loginRes = await request(app).put('/api/auth').send(user);
   adminAuthToken = loginRes.body.token;
-  adminId = loginRes.body.user.id;
-  adminEmail = loginRes.body.user.email;
 });
 
 test('update menu item', async () => {
@@ -112,5 +108,33 @@ test('place an order', async () => {
             id: expect.any(Number) // Expect an order ID to be present
         },
         jwt: expect.any(String) // Expect a JWT to be present in the response
+    });
+});
+
+test('fetch orders', async () => {
+    const fetchOrdersRes = await request(app)
+        .get('/api/order') // Endpoint to fetch orders
+        .set('Authorization', `Bearer ${adminAuthToken}`);
+  
+    expect(fetchOrdersRes.status).toBe(200);
+    expect(fetchOrdersRes.body).toEqual({
+        dinerId: expect.any(Number), // Expect a diner ID to be present
+        orders: expect.arrayContaining([ // Expect orders to be present
+            {
+                id: expect.any(Number), // Expect an order ID to be present
+                franchiseId: expect.any(Number), // Expect a franchise ID to be present
+                storeId: expect.any(Number), // Expect a store ID to be present
+                date: expect.any(String), // Expect a date string to be present
+                items: expect.arrayContaining([ // Expect items to be present in the order
+                    {
+                        id: expect.any(Number), // Expect an item ID to be present
+                        menuId: expect.any(Number), // Expect a menu ID to be present
+                        description: expect.any(String), // Expect a description to be present
+                        price: expect.any(Number) // Expect a price to be present
+                    }
+                ])
+            }
+        ]),
+        page: expect.any(Number) // Expect the page number to be present
     });
 });
