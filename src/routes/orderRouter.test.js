@@ -78,3 +78,39 @@ test('get menu', async () => {
     );
 });
   
+test('place an order', async () => {
+    const orderData = {
+        franchiseId: 1,
+        storeId: 1,
+        items: [
+            {
+                menuId: 1,
+                description: "Veggie",
+                price: 0.05
+            }
+        ]
+    };
+
+    const orderRes = await request(app)
+        .post('/api/order') // Endpoint to place an order
+        .set('Authorization', `Bearer ${adminAuthToken}`)
+        .set('Content-Type', 'application/json')
+        .send(orderData);
+  
+    expect(orderRes.status).toBe(200);
+    expect(orderRes.body).toEqual({
+        order: {
+            franchiseId: orderData.franchiseId,
+            storeId: orderData.storeId,
+            items: [
+                {
+                    menuId: orderData.items[0].menuId,
+                    description: orderData.items[0].description,
+                    price: orderData.items[0].price
+                }
+            ],
+            id: expect.any(Number) // Expect an order ID to be present
+        },
+        jwt: expect.any(String) // Expect a JWT to be present in the response
+    });
+});
