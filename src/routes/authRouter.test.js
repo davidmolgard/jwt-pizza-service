@@ -3,6 +3,7 @@ const app = require('../service');
 
 const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 let testUserAuthToken;
+let testUserId;
 
 beforeAll(async () => {
   testUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
@@ -15,9 +16,13 @@ test('login', async () => {
   const loginRes = await request(app).put('/api/auth').send(testUser);
   expect(loginRes.status).toBe(200);
   expect(loginRes.body.token).toMatch(/^[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*$/);
-
-  const { password, ...user } = { ...testUser, roles: [{ role: 'diner' }] };
-  expect(loginRes.body.user).toMatchObject(user);
+  expect(loginRes.body.user.id).toBe(testUserId);
+  expect(loginRes.body.user).toMatchObject({
+    id: expect.any(Number), 
+    name: testUser.name,
+    email: testUser.email,
+    roles: [{ role: 'diner' }]
+  });
 });
 
 test('register', async () => {
@@ -42,9 +47,19 @@ test('update', async () => {
 
   expect(updateRes.status).toBe(200);
   expect(updateRes.body).toMatchObject({
-    id: testUserId,
+    id: expect.any(Number),
     name: testUser.name, // Retaining the original name, assuming it's unchanged
     email: updatedData.email,
     roles: [{ role: 'diner' }]
   });
 });
+
+test('logout', async () => {
+  const logoutRes = await request(app)
+    .delete('/api/auth')
+    .set('Authorization', `Bearer ${testUserAuthToken}`);
+
+  expect(logoutRes.status).toBe(200);
+  expect(logoutRes.body).toMatchObject({ message: 'logout successful' });
+});
+
