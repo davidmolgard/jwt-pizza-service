@@ -8,6 +8,7 @@ beforeAll(async () => {
   testUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
   const registerRes = await request(app).post('/api/auth').send(testUser);
   testUserAuthToken = registerRes.body.token;
+  testUserId = registerRes.body.user.id;
 });
 
 test('login', async () => {
@@ -27,6 +28,23 @@ test('register', async () => {
     id: expect.any(Number), // Expect an ID to be present
     name: testUser.name,
     email: testUser.email,
+    roles: [{ role: 'diner' }]
+  });
+});
+
+test('update', async () => {
+  const updatedData = { email: 'update@test.com', password: 'newpassword' };
+
+  const updateRes = await request(app)
+    .put(`/api/auth/${testUserId}`)
+    .set('Authorization', `Bearer ${testUserAuthToken}`)
+    .send(updatedData);
+
+  expect(updateRes.status).toBe(200);
+  expect(updateRes.body).toMatchObject({
+    id: testUserId,
+    name: testUser.name, // Retaining the original name, assuming it's unchanged
+    email: updatedData.email,
     roles: [{ role: 'diner' }]
   });
 });
