@@ -8,3 +8,11 @@ async function createAdminUser() {
   user = await DB.addUser(user);
   return { ...user, password: 'toomanysecrets' };
 }
+
+function randomName() {
+  return Math.random().toString(36).substring(2, 12);
+}
+
+if (process.env.VSCODE_INSPECTOR_OPTIONS) {
+  jest.setTimeout(60 * 1000 * 5); // 5 minutes
+}
