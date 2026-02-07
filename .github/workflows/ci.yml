@@ -5,12 +5,14 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.set_version.outputs.version }}
+
     services:
       mysql:
         image: mysql:8.0.29
@@ -18,9 +20,12 @@ jobs:
           MYSQL_ROOT_PASSWORD: tempdbpassword
           MYSQL_DATABASE: pizza
         ports:
-          - '3306:3306'
+          - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping -ptempdbpassword" --health-interval 10s --health-start-period 10s --health-timeout 5s --health-retries 10
+          --health-cmd="mysqladmin ping -ptempdbpassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout repo
@@ -30,16 +35,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            mysql -h 127.0.0.1 -u root -ptempdbpassword -e "SELECT 1" && break
+            sleep 2
+          done
 
       - name: Lint
         run: npm run lint
 
       - name: Write config file
         run: |
-          echo "module.exports = {
+          cat <<EOF > src/config.js
+          module.exports = {
             jwtSecret: '${{ secrets.JWT_SECRET }}',
             db: {
               connection: {
@@ -55,12 +70,13 @@ jobs:
               url: 'https://pizza-factory.cs329.click',
               apiKey: '${{ secrets.FACTORY_API_KEY }}',
             },
-          };" > src/config.js
+          };
+          EOF
 
       - name: Tests
         run: npm test
 
-      - name: set version
+      - name: Set version
         id: set_version
         run: |
           version=$(date +'%Y%m%d.%H%M%S')
@@ -71,4 +87,5 @@ jobs:
         run: |
           coverage=$(jq '.total.lines.pct' coverage/coverage-summary.json)
           color=$(echo "$coverage < 80" | bc | awk '{if ($1) print "red"; else print "green"}')
-          curl -s -X POST "https://pizza-factory.cs329.click/api/badge/${{ secrets.NET_ID }}/jwtpizzaservicecoverage?label=Coverage&value=$coverage%25&color=$color" -H "authorization: bearer ${{ secrets.FACTORY_API_KEY }}"
+          curl -s -X POST "https://pizza-factory.cs329.click/api/badge/${{ secrets.NET_ID }}/jwtpizzaservicecoverage?label=Coverage&value=$coverage%25&color=$color" \
+            -H "authorization: bearer ${{ secrets.FACTORY_API_KEY }}"
