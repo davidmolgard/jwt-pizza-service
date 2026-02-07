@@ -12,7 +12,15 @@ beforeAll(async () => {
     email: 'a@jwt.com',
     password: 'admin',
   });
+  if (adminRes.status !== 200) {
+    console.error('Admin login failed:', adminRes.status, adminRes.body);
+    throw new Error(`Admin login failed with status ${adminRes.status}`);
+  }
   adminToken = adminRes.body.token;
+  if (!adminToken) {
+    console.error('No token in admin response:', adminRes.body);
+    throw new Error('No token in admin login response');
+  }
   adminUser = adminRes.body.user || { id: 1, email: 'a@jwt.com' };
 
   // Create regular user
@@ -21,7 +29,15 @@ beforeAll(async () => {
     email: Math.random().toString(36).substring(2, 12) + '@test.com',
     password: 'userpass',
   });
+  if (userRes.status !== 200) {
+    console.error('User creation failed:', userRes.status, userRes.body);
+    throw new Error(`User creation failed with status ${userRes.status}`);
+  }
   userToken = userRes.body.token;
+  if (!userToken) {
+    console.error('No token in user response:', userRes.body);
+    throw new Error('No token in user creation response');
+  }
   user = userRes.body.user;
 });
 

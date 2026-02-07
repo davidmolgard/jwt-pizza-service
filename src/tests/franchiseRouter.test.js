@@ -12,7 +12,15 @@ beforeAll(async () => {
     email: 'a@jwt.com',
     password: 'admin',
   });
+  if (adminRes.status !== 200) {
+    console.error('Admin login failed:', adminRes.status, adminRes.body);
+    throw new Error(`Admin login failed with status ${adminRes.status}`);
+  }
   adminToken = adminRes.body.token;
+  if (!adminToken) {
+    console.error('No token in admin response:', adminRes.body);
+    throw new Error('No token in admin login response');
+  }
   adminUser = adminRes.body.user || { id: 1, email: 'a@jwt.com' };
 
   // Create franchisee user
@@ -21,6 +29,10 @@ beforeAll(async () => {
     email: Math.random().toString(36).substring(2, 12) + '@franchisee.com',
     password: 'franchiseepass',
   });
+  if (franchiseeRes.status !== 200) {
+    console.error('Franchisee creation failed:', franchiseeRes.status, franchiseeRes.body);
+    throw new Error(`Franchisee creation failed with status ${franchiseeRes.status}`);
+  }
   franchiseeToken = franchiseeRes.body.token;
   franchiseeUser = franchiseeRes.body.user;
 });
