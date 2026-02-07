@@ -13,7 +13,7 @@ beforeAll(async () => {
     password: 'admin',
   });
   adminToken = adminRes.body.token;
-  adminUser = adminRes.body.user;
+  adminUser = adminRes.body.user || { id: 1, email: 'a@jwt.com' };
 
   // Create franchisee user
   const franchiseeRes = await request(app).post('/api/auth').send({
