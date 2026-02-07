@@ -11,6 +11,38 @@ beforeAll(async () => {
   expectValidJwt(testUserAuthToken);
 });
 
+test('register', async () => {
+  const newUser = { name: 'new diner', email: Math.random().toString(36).substring(2, 12) + '@test.com', password: 'password' };
+  const registerRes = await request(app).post('/api/auth').send(newUser);
+  expect(registerRes.status).toBe(200);
+  expectValidJwt(registerRes.body.token);
+  expect(registerRes.body.user.name).toBe(newUser.name);
+  expect(registerRes.body.user.email).toBe(newUser.email);
+  expect(registerRes.body.user.roles).toEqual([{ role: 'diner' }]);
+  expect(registerRes.body.user.password).toBeUndefined();
+});
+
+test('register missing name', async () => {
+  const newUser = { email: Math.random().toString(36).substring(2, 12) + '@test.com', password: 'password' };
+  const registerRes = await request(app).post('/api/auth').send(newUser);
+  expect(registerRes.status).toBe(400);
+  expect(registerRes.body.message).toMatch(/required/i);
+});
+
+test('register missing email', async () => {
+  const newUser = { name: 'new diner', password: 'password' };
+  const registerRes = await request(app).post('/api/auth').send(newUser);
+  expect(registerRes.status).toBe(400);
+  expect(registerRes.body.message).toMatch(/required/i);
+});
+
+test('register missing password', async () => {
+  const newUser = { name: 'new diner', email: Math.random().toString(36).substring(2, 12) + '@test.com' };
+  const registerRes = await request(app).post('/api/auth').send(newUser);
+  expect(registerRes.status).toBe(400);
+  expect(registerRes.body.message).toMatch(/required/i);
+});
+
 test('login', async () => {
   const loginRes = await request(app).put('/api/auth').send(testUser);
   expect(loginRes.status).toBe(200);
@@ -19,6 +51,35 @@ test('login', async () => {
   const expectedUser = { ...testUser, roles: [{ role: 'diner' }] };
   delete expectedUser.password;
   expect(loginRes.body.user).toMatchObject(expectedUser);
+});
+
+test('login invalid password', async () => {
+  const invalidUser = { ...testUser, password: 'wrongpassword' };
+  const loginRes = await request(app).put('/api/auth').send(invalidUser);
+  expect(loginRes.status).toBe(404);
+});
+
+test('login unknown user', async () => {
+  const unknownUser = { email: 'unknown@test.com', password: 'password' };
+  const loginRes = await request(app).put('/api/auth').send(unknownUser);
+  expect(loginRes.status).toBe(404);
+});
+
+test('logout', async () => {
+  const logoutRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${testUserAuthToken}`);
+  expect(logoutRes.status).toBe(200);
+  expect(logoutRes.body.message).toBe('logout successful');
+});
+
+test('logout without token', async () => {
+  const logoutRes = await request(app).delete('/api/auth');
+  expect(logoutRes.status).toBe(401);
+});
+
+test('access protected endpoint without token', async () => {
+  const protectedRes = await request(app).delete('/api/auth');
+  expect(protectedRes.status).toBe(401);
+  expect(protectedRes.body.message).toBe('unauthorized');
 });
 
 function expectValidJwt(potentialJwt) {
