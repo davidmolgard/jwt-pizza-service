@@ -9,9 +9,10 @@ beforeAll(async () => {
 
   // Ensure default admin user exists
   try {
-    const admin = await DB.getUser('a@jwt.com');
+    await DB.getUser('a@jwt.com');
     console.log('Default admin user exists');
-  } catch (err) {
+    // eslint-disable-next-line no-unused-vars
+  } catch (_err) {
     console.log('Creating default admin user');
     const defaultAdmin = { name: '常用名字', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
     await DB.addUser(defaultAdmin);
