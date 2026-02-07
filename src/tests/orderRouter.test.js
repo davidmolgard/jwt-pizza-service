@@ -1,23 +1,10 @@
 const request = require('supertest');
 const app = require('../service');
-const { Role } = require('../database/database.js');
 
-let adminToken;
-let adminUser;
 let dinerToken;
 let dinerUser;
-let franchise;
-let store;
 
 beforeAll(async () => {
-  // Login as default admin
-  const adminRes = await request(app).put('/api/auth').send({
-    email: 'a@jwt.com',
-    password: 'admin',
-  });
-  adminToken = adminRes.body.token;
-  adminUser = adminRes.body.user;
-
   // Create diner user
   const dinerRes = await request(app).post('/api/auth').send({
     name: 'diner user',
@@ -26,24 +13,6 @@ beforeAll(async () => {
   });
   dinerToken = dinerRes.body.token;
   dinerUser = dinerRes.body.user;
-
-  // Create franchise and store for orders
-  const franchiseRes = await request(app)
-    .post('/api/franchise')
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({
-      name: `OrderFranchise-${Math.random().toString(36).substring(7)}`,
-      admins: [{ email: adminUser.email }],
-    });
-  franchise = franchiseRes.body;
-
-  const storeRes = await request(app)
-    .post(`/api/franchise/${franchise.id}/store`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({
-      name: 'Test Store',
-    });
-  store = storeRes.body;
 });
 
 describe('Order Router', () => {

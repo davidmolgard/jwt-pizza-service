@@ -1,6 +1,5 @@
 const request = require('supertest');
 const app = require('../service');
-const { Role } = require('../database/database.js');
 
 let adminToken;
 let adminUser;

@@ -1,5 +1,4 @@
 const { Role, DB } = require('../database/database.js');
-const bcrypt = require('bcrypt');
 
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
@@ -249,7 +248,7 @@ describe('Database integration tests', () => {
         admins: [{ email: franchiseAdmin.email }],
       });
 
-      const [franchises, more] = await DB.getFranchises(admin, 0, 10, `*Fran*`);
+      const [franchises] = await DB.getFranchises(admin, 0, 10, `*Fran*`);
 
       expect(Array.isArray(franchises)).toBe(true);
       if (franchises.length > 0) {
@@ -261,7 +260,7 @@ describe('Database integration tests', () => {
     });
 
     test('getFranchises handles name filter with wildcards', async () => {
-      const [franchises, more] = await DB.getFranchises(admin, 0, 10, 'Fr*');
+      const [franchises] = await DB.getFranchises(admin, 0, 10, 'Fr*');
 
       expect(Array.isArray(franchises)).toBe(true);
     });
