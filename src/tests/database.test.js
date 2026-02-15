@@ -150,6 +150,16 @@ describe('Database integration tests', () => {
   });
 
   describe('Menu', () => {
+    let createdMenuItems = [];
+
+    afterEach(async () => {
+      // Clean up test menu items
+      for (const menuId of createdMenuItems) {
+        await DB.deleteMenuItem(menuId);
+      }
+      createdMenuItems = [];
+    });
+
     test('addMenuItem and getMenu', async () => {
       const item = {
         title: 'Burger',
@@ -159,6 +169,7 @@ describe('Database integration tests', () => {
       };
 
       const created = await DB.addMenuItem(item);
+      createdMenuItems.push(created.id);
       expect(created.id).toBeDefined();
 
       const menu = await DB.getMenu();
@@ -330,10 +341,14 @@ describe('Database integration tests', () => {
       });
       const store = await DB.createStore(franchise.id, { name: 'Order Store' });
 
+      // Get a valid menu item
+      const menu = await DB.getMenu();
+      const menuItem = menu[0]; // Use the first available menu item
+
       const order = {
         franchiseId: franchise.id,
         storeId: store.id,
-        items: [{ menuId: 1, description: 'Pizza', price: 12.99 }],
+        items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }],
       };
 
       const created = await DB.addDinerOrder(admin, order);

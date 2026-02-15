@@ -29,9 +29,21 @@ class DB {
     }
   }
 
-  async addUser(user) {
+  async deleteMenuItem(menuId) {
     const connection = await this.getConnection();
     try {
+      await this.query(connection, `DELETE FROM menu WHERE id = ?`, [menuId]);
+    } finally {
+      connection.end();
+    }
+  }
+
+  async addUser(user, connection) {
+    const ownConnection = !connection;
+    try {
+      if (ownConnection) {
+        connection = await this.getConnection();
+      }
       const hashedPassword = await bcrypt.hash(user.password, 10);
 
       const userResult = await this.query(connection, `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`, [user.name, user.email, hashedPassword]);
@@ -51,7 +63,9 @@ class DB {
       }
       return { ...user, id: userId, password: undefined };
     } finally {
-      connection.end();
+      if (ownConnection) {
+        connection.end();
+      }
     }
   }
 
@@ -346,13 +360,34 @@ class DB {
 
         if (!dbExists) {
           const defaultAdmin = { name: '常用名字', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
-          this.addUser(defaultAdmin);
+          await this.addUser(defaultAdmin, connection);
+        } else {
+          // Ensure the admin user has the admin role even if the database already existed
+          await this.ensureAdminRole(connection);
         }
       } finally {
         connection.end();
       }
     } catch (err) {
       console.error(JSON.stringify({ message: 'Error initializing database', exception: err.message, connection: config.db.connection }));
+    }
+  }
+
+  async ensureAdminRole(connection) {
+    try {
+      const adminResult = await this.query(connection, `SELECT id FROM user WHERE email=?`, ['a@jwt.com']);
+      if (adminResult.length > 0) {
+        const adminId = adminResult[0].id;
+        // Check if admin role exists
+        const roleResult = await this.query(connection, `SELECT id FROM userRole WHERE userId=? AND role=?`, [adminId, Role.Admin]);
+        if (roleResult.length === 0) {
+          // Add admin role if it doesn't exist
+          await this.query(connection, `INSERT INTO userRole (userId, role, objectId) VALUES (?, ?, ?)`, [adminId, Role.Admin, 0]);
+          console.log('Admin role added to default admin user');
+        }
+      }
+    } catch (err) {
+      console.error('Error ensuring admin role:', err.message);
     }
   }
 
